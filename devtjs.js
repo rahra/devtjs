@@ -25,6 +25,7 @@ class Deviation
       this.dev_data.sort(function(a, b){return a.a - a.b;});
       this.dev_data.push({a: this.dev_data[0].a + 360, v: this.dev_data[0].v});
 
+      this.C = [];
       this.init();
       console.log(this);
    }
@@ -32,13 +33,22 @@ class Deviation
 
    init()
    {
-      this.a = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: 1}, {a: 180, v: 1}, {a: 270, v: 1}]);
-      this.b = this.calc_coeff([{a: 90, v: 1}, {a: 270, v: -1}]);
-      this.c = this.calc_coeff([{a: 0, v: 1}, {a: 180, v: -1}]);
-      this.d = this.calc_coeff([{a: 45, v: 1}, {a: 135, v: -1}, {a: 225, v: 1}, {a: 315, v: -1}]);
-      this.e = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: -1}, {a: 180, v: 1}, {a: 270, v: -1}]);
-      console.log("a = " + this.a + ", b = " + this.b + ", c = " + this.c + ", d = " + this.d + ", e = " + this.e);
+      this.C[0] = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: 1}, {a: 180, v: 1}, {a: 270, v: 1}]);
+      this.C[1] = this.calc_coeff([{a: 90, v: 1}, {a: 270, v: -1}]);
+      this.C[2] = this.calc_coeff([{a: 0, v: 1}, {a: 180, v: -1}]);
+      this.C[3] = this.calc_coeff([{a: 45, v: 1}, {a: 135, v: -1}, {a: 225, v: 1}, {a: 315, v: -1}]);
+      this.C[4] = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: -1}, {a: 180, v: 1}, {a: 270, v: -1}]);
+      console.log("a = " + this.C[0] + ", b = " + this.C[1] + ", c = " + this.C[2] + ", d = " + this.C[3] + ", e = " + this.C[4]);
    }
+
+
+   /*bias()
+   {
+      var b = 0;
+      for (var i = 0; i < this.dev_data.length; i++)
+         b += this.dev_data[i].v;
+      return b;
+   }*/
 
 
    lin_val(a)
@@ -65,10 +75,25 @@ class Deviation
    }
 
 
+   /*! Return calculated deviation for specific angle a.
+    * @param a Angle in degrees.
+    * @return Returns deviation value.
+    */
    dev_val(a)
    {
       var z = deg2rad(a);
-      return this.a + this.b * Math.sin(z) + this.c * Math.cos(z) + this.d * Math.sin(2 * z) + this.e * Math.cos(2 * z);
+      return this.C[0] + this.C[1] * Math.sin(z) + this.C[2] * Math.cos(z) + this.C[3] * Math.sin(2 * z) + this.C[4] * Math.cos(2 * z);
+   }
+
+
+   /*! Return standard deviation of orgiginal values and calculated values.
+    */
+   get var()
+   {
+      var v = 0;
+      for (var i = 0; i < this.dev_data.length - 1; i++)
+         v += Math.pow(this.dev_data[i].v - this.dev_val(this.dev_data[i].a), 2);
+      return v;
    }
 }
 
@@ -93,7 +118,10 @@ class DevDiag
 
    clear()
    {
-       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.save();
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.restore();
    }
 
 
@@ -102,7 +130,7 @@ class DevDiag
       this.ctx.translate(this.canvas.width * 0.1, this.canvas.height / 2);
       //this.ctx.scale(this.canvas.width * 0.8 / 360, this.canvas.height * 0.8 / 35 );
       this.sx = this.canvas.width * 0.8 / 360;
-      this.sy = this.canvas.height * 0.8 / 35;
+      this.sy = -this.canvas.height * 0.8 / 35;
    }
 
 
@@ -168,6 +196,41 @@ class DevDiag
       for (var i = 0; i <= 360; i += 10)
          this.ctx.lineTo(i * this.sx, this.dev.dev_val(i) * this.sy);
       this.ctx.stroke();
+
+      var s = "y = " + this.dev.C[0].toFixed(2) + " + " + this.dev.C[1].toFixed(2) + " · sin(z) + " + this.dev.C[3].toFixed(2) + " · cos(z) + " + this.dev.C[3].toFixed(2) + " · sin(2z) + " + this.dev.C[4].toFixed(2) + " · cos(2z)";
+      this.ctx.font = "9pt sans-serif";
+      this.ctx.fillText(s, 10, 19 * this.sy);
+      this.ctx.fillText("var = " + this.dev.var.toFixed(2), 10, 18 * this.sy);
+   }
+
+   key_down_handler(e)
+   {
+      var diff = 0.1;
+      var k = -1;
+
+      k = e.key.charCodeAt(0);
+      if (k >= 0x61 && k <= 0x65)
+      {
+         diff *= -1;
+         k -= 0x61;
+      }
+      else if (k >= 0x41 && k <= 0x65)
+      {
+         k -= 0x41;
+      }
+
+      if (k != -1)
+      {
+         this.dev.C[k] += diff;
+      }
+      else
+      {
+         // do something else with other keys...
+         return;
+      }
+
+      this.clear();
+      this.draw();
    }
 }
 
@@ -179,4 +242,6 @@ diag_.height = window.innerHeight;
 var dd_ = new DevDiag(diag_);
 dd_.set_dev_data(dev_data_);
 dd_.draw();
+
+document.addEventListener('keydown', function(e){dd_.key_down_handler(e);});
 
