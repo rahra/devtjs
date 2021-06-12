@@ -1,5 +1,5 @@
 
-var dev_data_ = [{a: 0, v: -2}, {a: 45, v: 6}, {a: 90, v:16}, {a:135, v:17}, {a: 180, v: 7}, {a: 225, v: -5}, {a: 270, v: -17}, {a: 315, v: -14}];
+var intxt_ = document.getElementById("devinput");
 
 
 function deg2rad(x)
@@ -127,6 +127,9 @@ class DevDiag
 
    init_ctx()
    {
+      this.canvas.width = window.innerWidth * .95;
+      this.canvas.height = window.innerHeight *.95;
+
       this.ctx.translate(this.canvas.width * 0.1, this.canvas.height / 2);
       //this.ctx.scale(this.canvas.width * 0.8 / 360, this.canvas.height * 0.8 / 35 );
       this.sx = this.canvas.width * 0.8 / 360;
@@ -235,13 +238,32 @@ class DevDiag
 }
 
 
-var diag_ = document.getElementById('diag');
-diag_.width = window.innerWidth;
-diag_.height = window.innerHeight;
+function update()
+{
+   var dev_data = [];
 
+   //intxt_.value.replace(/[ ]/g, "_");
+   var dv = intxt_.value.split(",");
+
+   for (var i = 0; i < dv.length; i++)
+   {
+      var de = dv[i].split(":");
+      if (de.length != 2)
+         throw "syntax error in dev data";
+      dev_data.push({a: +de[0], v: +de[1]});
+   }
+
+   dd_.set_dev_data(dev_data);
+}
+
+
+var diag_ = document.getElementById('diag');
 var dd_ = new DevDiag(diag_);
-dd_.set_dev_data(dev_data_);
+update();
 dd_.draw();
 
+
 document.addEventListener('keydown', function(e){dd_.key_down_handler(e);});
+window.addEventListener('resize', function(){dd_.init_ctx(); dd_.clear(); dd_.draw();});
+intxt_.addEventListener('change', function(){update(); dd_.clear(); dd_.draw();});
 
