@@ -14,6 +14,32 @@ function rad2deg(x)
 }
 
 
+function dev2text(d)
+{
+   return (d > 0 ? "+" : "") + d;
+}
+
+
+function brg2text(a)
+{
+   var n = "", m;
+
+   if (a < 0)
+   {
+      n = "-";
+      a = -a;
+   }
+
+   if (a >= 100)
+      m = 0;
+   else if (a >= 10)
+      m = 1;
+   else m = 2;
+
+   return n + "0".repeat(m) + a;
+}
+
+
 class Deviation
 {
    constructor(dev_data)
@@ -29,7 +55,7 @@ class Deviation
 
       this.C = [];
       this.init();
-      console.log(this);
+      //console.log(this);
    }
 
 
@@ -88,7 +114,7 @@ class Deviation
    }
 
 
-   /*! Return standard deviation of orgiginal values and calculated values.
+   /*! Return standard deviation of original values and calculated values.
     */
    get var()
    {
@@ -141,9 +167,11 @@ class DevDiag
 
    axis()
    {
+      var i, t;
+
       this.ctx.save();
 
-      for (var i = -20; i <= 20; i++)
+      for (i = -20; i <= 20; i++)
       {
          this.ctx.beginPath();
          if ((i % 5) == 0)
@@ -159,9 +187,12 @@ class DevDiag
          this.ctx.moveTo(0, i * this.sy);
          this.ctx.lineTo(360 * this.sx, i * this.sy);
          this.ctx.stroke();
+
+         t = dev2text(i);
+         this.ctx.fillText(t, -5 - this.ctx.measureText(t).width, i * this.sy + this.ctx.measureText(t).actualBoundingBoxAscent / 2);
       }
 
-      for (var i = 0; i <= 360; i += 22.5)
+      for (i = 0; i <= 360; i += 22.5)
       {
          this.ctx.beginPath();
          this.ctx.strokeStyle = '#e0e0e0';
@@ -169,6 +200,13 @@ class DevDiag
          this.ctx.moveTo(i * this.sx, -20 * this.sy);
          this.ctx.lineTo(i * this.sx, 20 * this.sy);
          this.ctx.stroke();
+
+         t = brg2text(i);
+         this.ctx.save();
+         this.ctx.translate(i * this.sx, 0);
+         this.ctx.rotate(-Math.PI / 4);
+         this.ctx.fillText(t, 0, 0);
+         this.ctx.restore();
       }
 
       this.ctx.setLineDash([]);
@@ -183,6 +221,7 @@ class DevDiag
 
       this.ctx.restore();
    }
+
 
    draw()
    {
@@ -208,20 +247,20 @@ class DevDiag
       this.ctx.fillText("var = " + this.dev.var.toFixed(2), 10, 18 * this.sy);
    }
 
+
    key_down_handler(e)
    {
       var diff = 0.1;
       var k = -1;
 
-      k = e.key.charCodeAt(0);
-      if (k >= 0x61 && k <= 0x65)
+      if (["a", "b", "c", "d", "e"].includes(e.key))
       {
+         k = e.key.charCodeAt(0) - 0x61;
          diff *= -1;
-         k -= 0x61;
       }
-      else if (k >= 0x41 && k <= 0x65)
+      else if (["A", "B", "C", "E", "F"].includes(e.key))
       {
-         k -= 0x41;
+         k = e.key.charCodeAt(0) - 0x41;
       }
 
       if (k != -1)
