@@ -24,6 +24,8 @@ class Deviation
       this.dev_data = dev_data;
       this.dev_data.sort(function(a, b){return a.a - a.b;});
       this.dev_data.push({a: this.dev_data[0].a + 360, v: this.dev_data[0].v});
+      if (this.dev_data[0].a > 0)
+         this.dev_data.unshift({a: this.dev_data[this.dev_data.length - 2].a - 360, v: this.dev_data[this.dev_data.length - 2].v});
 
       this.C = [];
       this.init();
