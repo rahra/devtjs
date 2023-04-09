@@ -2,8 +2,13 @@
 //! global diagram settings
 var G =
 {
+   //! maximum iteration of optimizer
+   maxit: 10,
+   //! maximum deviation in diagram
    maxdev: 20,
-   brgstep: 22.5,
+   //! heading steps in diagram
+   hdgstep: 22.5,
+   //! font scaling
    fontscale: 2.5
 };
 
@@ -33,7 +38,7 @@ function dev2text(d)
 }
 
 
-function brg2text(a)
+function hdg2text(a)
 {
    var n = "", m;
 
@@ -80,7 +85,7 @@ class Deviation
       this.C[2] = this.calc_coeff([{a: 0, v: 1}, {a: 180, v: -1}]);
       this.C[3] = this.calc_coeff([{a: 45, v: 1}, {a: 135, v: -1}, {a: 225, v: 1}, {a: 315, v: -1}]);
       this.C[4] = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: -1}, {a: 180, v: 1}, {a: 270, v: -1}]);
-      console.log("a = " + this.C[0] + ", b = " + this.C[1] + ", c = " + this.C[2] + ", d = " + this.C[3] + ", e = " + this.C[4]);
+      this.optimize();
    }
 
 
@@ -136,6 +141,48 @@ class Deviation
       for (var i = 0; i < this.dev_data.length - 1; i++)
          v += Math.pow(this.dev_data[i].v - this.dev_val(this.dev_data[i].a), 2);
       return v;
+   }
+
+
+   find_limit(i, d)
+   {
+      var v0, v1;
+
+      for (v0 = this.var;;)
+      {
+         this.C[i] += d;
+         v1 = this.var;
+         if (v1 > v0)
+         {
+            this.C[i] -= d;
+            break;
+         }
+         v0 = v1;
+      }
+   }
+
+
+   /*! This iteratively optimizes the initial values by modifiying the
+    * coefficients to decrease the overal function deviation.
+    */
+   optimize()
+   {
+      var d = 0.01;
+      var v0 = this.var, v1;
+
+      for (var j = 0; j < G.maxit; j++)
+      {
+         for (var i = 0; i < 5; i++)
+         {
+            this.find_limit(i, d);
+            this.find_limit(i, -d);
+         }
+         v1 = this.var;
+         console.log("a = " + this.C[0] + ", b = " + this.C[1] + ", c = " + this.C[2] + ", d = " + this.C[3] + ", e = " + this.C[4] + ", var = " + v1);
+         if (Math.abs(v0 - v1) < 0.001)
+            break;
+         v0 = v1;
+      }
    }
 }
 
@@ -209,7 +256,7 @@ class DevDiag
          this.ctx.fillText(t, -5 - this.ctx.measureText(t).width, i * this.sy + this.ctx.measureText(t).actualBoundingBoxAscent / 2);
       }
 
-      for (i = 0; i <= 360; i += G.brgstep)
+      for (i = 0; i <= 360; i += G.hdgstep)
       {
          this.ctx.beginPath();
          this.ctx.strokeStyle = '#e0e0e0';
@@ -218,7 +265,7 @@ class DevDiag
          this.ctx.lineTo(i * this.sx, 20 * this.sy);
          this.ctx.stroke();
 
-         t = brg2text(i);
+         t = hdg2text(i);
          this.ctx.save();
          this.ctx.translate(i * this.sx, 0);
          this.ctx.rotate(-Math.PI / 4);
