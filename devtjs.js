@@ -1,4 +1,17 @@
 
+//! global diagram settings
+var G =
+{
+   maxdev: 20,
+   brgstep: 22.5,
+   fontscale: 2.5
+};
+
+
+/*! Get data from input field.
+ * The data shall be in the following format:
+ * hdg0:dev0, hdg1:dev1, hdg2:dev2,...
+ */
 var intxt_ = document.getElementById("devinput");
 
 
@@ -40,6 +53,8 @@ function brg2text(a)
 }
 
 
+/*! This class calculates the deviation curve dependent on the input data.
+ */
 class Deviation
 {
    constructor(dev_data)
@@ -55,7 +70,6 @@ class Deviation
 
       this.C = [];
       this.init();
-      //console.log(this);
    }
 
 
@@ -126,6 +140,8 @@ class Deviation
 }
 
 
+/*! This class draws the diagram.
+ */
 class DevDiag
 {
    constructor(canvas)
@@ -162,6 +178,7 @@ class DevDiag
       //this.ctx.scale(this.canvas.width * 0.8 / 360, this.canvas.height * 0.8 / 35 );
       this.sx = this.canvas.width * 0.8 / 360;
       this.sy = -this.canvas.height * 0.8 / 35;
+      //console.log("sx = " + this.sx + ", sy = " + this.sy);
    }
 
 
@@ -171,7 +188,7 @@ class DevDiag
 
       this.ctx.save();
 
-      for (i = -20; i <= 20; i++)
+      for (i = -G.maxdev; i <= G.maxdev; i++)
       {
          this.ctx.beginPath();
          if ((i % 5) == 0)
@@ -192,7 +209,7 @@ class DevDiag
          this.ctx.fillText(t, -5 - this.ctx.measureText(t).width, i * this.sy + this.ctx.measureText(t).actualBoundingBoxAscent / 2);
       }
 
-      for (i = 0; i <= 360; i += 22.5)
+      for (i = 0; i <= 360; i += G.brgstep)
       {
          this.ctx.beginPath();
          this.ctx.strokeStyle = '#e0e0e0';
@@ -226,6 +243,7 @@ class DevDiag
    draw()
    {
       this.clear();
+      this.ctx.font = this.sx * G.fontscale + "pt sans-serif";
       this.axis();
 
       this.ctx.strokeStyle = '#404040';
@@ -242,7 +260,6 @@ class DevDiag
       this.ctx.stroke();
 
       var s = "y = " + this.dev.C[0].toFixed(2) + " + " + this.dev.C[1].toFixed(2) + " · sin(z) + " + this.dev.C[3].toFixed(2) + " · cos(z) + " + this.dev.C[3].toFixed(2) + " · sin(2z) + " + this.dev.C[4].toFixed(2) + " · cos(2z)";
-      this.ctx.font = "9pt sans-serif";
       this.ctx.fillText(s, 10, 19 * this.sy);
       this.ctx.fillText("var = " + this.dev.var.toFixed(2), 10, 18 * this.sy);
    }
