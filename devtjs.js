@@ -68,7 +68,7 @@ class Deviation
          throw "no elements in array";
 
       this.name = name;
-      this.dev_data = dev_data;
+      this.dev_data = this.dev_clone(dev_data);
       this.dev_data.sort(function(a, b){return a.a - a.b;});
       this.dev_data.push({a: this.dev_data[0].a + 360, v: this.dev_data[0].v});
       if (this.dev_data[0].a > 0)
@@ -79,6 +79,18 @@ class Deviation
    }
 
 
+   dev_clone(d0)
+   {
+      var d1 = [];
+      for (var i = 0; i < d0.length; i++)
+         d1.push({a: d0[i].a, v: d0[i].v});
+      return d1;
+   }
+
+
+   /*! Calculate all coefficients and optimize curve.
+    * (protected)
+    */
    init()
    {
       this.C[0] = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: 1}, {a: 180, v: 1}, {a: 270, v: 1}]);
@@ -88,15 +100,6 @@ class Deviation
       this.C[4] = this.calc_coeff([{a: 0, v: 1}, {a: 90, v: -1}, {a: 180, v: 1}, {a: 270, v: -1}]);
       this.optimize();
    }
-
-
-   /*bias()
-   {
-      var b = 0;
-      for (var i = 0; i < this.dev_data.length; i++)
-         b += this.dev_data[i].v;
-      return b;
-   }*/
 
 
    lin_val(a)
@@ -114,6 +117,9 @@ class Deviation
    }
 
 
+   /*! Calculate base coefficient.
+    * (protected)
+    */
    calc_coeff(coeff)
    {
       var v = 0;
@@ -153,6 +159,9 @@ class Deviation
    }
 
 
+   /*! Approximate parameter to lower variance.
+    * (protected)
+    */
    find_limit(i, d)
    {
       var v0, v1;
@@ -187,7 +196,6 @@ class Deviation
             this.find_limit(i, -d);
          }
          v1 = this.var;
-         console.log("a = " + this.C[0] + ", b = " + this.C[1] + ", c = " + this.C[2] + ", d = " + this.C[3] + ", e = " + this.C[4] + ", var = " + v1);
          if (Math.abs(v0 - v1) < 0.001)
             break;
          v0 = v1;
@@ -304,39 +312,41 @@ class DevDiag
    }
 
 
-   draw_measurement()
+   draw_measurement(n)
    {
       this.ctx.lineWidth = 1;
       this.ctx.beginPath();
       for (var i = 0; i <= 360; i += 45)
-         this.ctx.lineTo(i * this.sx, this.dev[0].lin_val(i) * this.sy);
+         this.ctx.lineTo(i * this.sx, this.dev[n].lin_val(i) * this.sy);
       this.ctx.stroke();
    }
 
 
-   draw_curve()
+   draw_curve(n)
    {
       this.ctx.beginPath();
       for (var i = 0; i <= 360; i += 10)
-         this.ctx.lineTo(i * this.sx, this.dev[0].dev_val(i) * this.sy);
+         this.ctx.lineTo(i * this.sx, this.dev[n].dev_val(i) * this.sy);
       this.ctx.stroke();
    }
 
 
    draw()
    {
-      //this.clear();
       this.ctx.font = this.sx * G.fontscale + "pt sans-serif";
       this.axis();
 
-      this.ctx.strokeStyle = '#404040';
-      this.draw_measurement();
+      for (var n = 0; n < this.dev.length; n++)
+      {
+         this.ctx.strokeStyle = '#404040';
+         this.draw_measurement(n);
 
-      this.ctx.strokeStyle = '#f04040';
-      this.draw_curve();
+         this.ctx.strokeStyle = '#f04040';
+         this.draw_curve(n);
 
-      var s = this.dev[0].str;
-      this.ctx.fillText(s, 10, 19 * this.sy);
+         var s = this.dev[n].str;
+         this.ctx.fillText("[" + n + "] " + s, 10, (19 - n) * this.sy);
+      }
    }
 
 
@@ -357,7 +367,7 @@ class DevDiag
 
       if (k != -1)
       {
-         this.dev.C[k] += diff;
+         this.dev[0].C[k] += diff;
       }
       else
       {
@@ -385,10 +395,14 @@ function update()
          throw "syntax error in dev data";
       dev_data.push({a: +de[0], v: +de[1]});
    }
-console.log(dev_data);
+
    dd_.reset();
+
    dd_.push(new Deviation(dev_data));
-   //for (var i = 0; i < dev_data.length; i++) dev_data[i].a += dev_data[i].v;
+
+   for (var i = 0; i < dev_data.length; i++)
+      dev_data[i].a += dev_data[i].v;
+
    dd_.push(new Deviation(dev_data, "M"));
 }
 
