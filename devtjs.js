@@ -9,7 +9,9 @@ var G =
    //! heading steps in diagram
    hdgstep: 22.5,
    //! font scaling
-   fontscale: 2.5
+   fontscale: 2.5,
+   //! size of measured points
+   dotsize: 3
 };
 
 
@@ -314,11 +316,12 @@ class DevDiag
 
    draw_measurement(n)
    {
-      this.ctx.lineWidth = 1;
-      this.ctx.beginPath();
-      for (var i = 0; i <= 360; i += 45)
-         this.ctx.lineTo(i * this.sx, this.dev[n].lin_val(i) * this.sy);
-      this.ctx.stroke();
+      for (var i = 0; i < this.dev[n].dev_data.length; i++)
+      {
+         this.ctx.beginPath();
+         this.ctx.arc(this.dev[n].dev_data[i].a * this.sx, this.dev[n].dev_data[i].v * this.sy, G.dotsize, 0, 2 * Math.PI);
+         this.ctx.stroke();
+      }
    }
 
 
@@ -333,15 +336,15 @@ class DevDiag
 
    draw()
    {
+      const col = ["#f04040", "#4040f0"];
       this.ctx.font = this.sx * G.fontscale + "pt sans-serif";
       this.axis();
 
       for (var n = 0; n < this.dev.length; n++)
       {
-         this.ctx.strokeStyle = '#404040';
+         this.ctx.strokeStyle = this.ctx.fillStyle = col[n & 1];
          this.draw_measurement(n);
 
-         this.ctx.strokeStyle = '#f04040';
          this.draw_curve(n);
 
          var s = this.dev[n].str;
@@ -350,6 +353,9 @@ class DevDiag
    }
 
 
+   /*! You may adjust the compass curve with the keyboard but this is mainly
+    * for debugging.
+    */
    key_down_handler(e)
    {
       var diff = 0.1;
@@ -385,7 +391,6 @@ function update()
 {
    var dev_data = [];
 
-   //intxt_.value.replace(/[ ]/g, "_");
    var dv = intxt_.value.split(",");
 
    for (var i = 0; i < dv.length; i++)
