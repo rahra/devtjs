@@ -1,3 +1,8 @@
+/*! Calculate deviation curves for compass headings and magnetic courses.
+ *
+ * @author Bernhard R. Fischer <bf@abenteuerland.at>
+ * @date 2023/04/11
+ */
 
 //! global diagram settings
 var G =
@@ -262,6 +267,7 @@ class DevDiag
 
       this.ctx.save();
 
+      this.ctx.fillStyle = "#000000";
       for (i = -G.maxdev; i <= G.maxdev; i++)
       {
          this.ctx.beginPath();
