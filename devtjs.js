@@ -62,11 +62,12 @@ function hdg2text(a)
  */
 class Deviation
 {
-   constructor(dev_data)
+   constructor(dev_data, name = "C")
    {
       if (dev_data.length < 1)
          throw "no elements in array";
 
+      this.name = name;
       this.dev_data = dev_data;
       this.dev_data.sort(function(a, b){return a.a - a.b;});
       this.dev_data.push({a: this.dev_data[0].a + 360, v: this.dev_data[0].v});
@@ -144,6 +145,14 @@ class Deviation
    }
 
 
+   /*! Return string representation of deviation formula.
+    */
+   get str()
+   {
+      return this.name + ": y = " + this.C[0].toFixed(2) + " + " + this.C[1].toFixed(2) + " · sin(z) + " + this.C[2].toFixed(2) + " · cos(z) + " + this.C[3].toFixed(2) + " · sin(2z) + " + this.C[4].toFixed(2) + " · cos(2z), var = " + this.var.toFixed(2);
+   }
+
+
    find_limit(i, d)
    {
       var v0, v1;
@@ -195,15 +204,23 @@ class DevDiag
    {
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
-      this.dev = null;
+      this.dev = [];
 
       this.init_ctx();
    }
 
 
-   set_dev_data(data)
+   push(dev)
    {
-      this.dev = new Deviation(data);
+      this.dev.push(dev);
+   }
+
+
+   reset()
+   {
+      for (var i = 0; i < this.dev.length; i++)
+         delete this.dev[i];
+      this.dev = [];
    }
 
 
@@ -287,28 +304,39 @@ class DevDiag
    }
 
 
+   draw_measurement()
+   {
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath();
+      for (var i = 0; i <= 360; i += 45)
+         this.ctx.lineTo(i * this.sx, this.dev[0].lin_val(i) * this.sy);
+      this.ctx.stroke();
+   }
+
+
+   draw_curve()
+   {
+      this.ctx.beginPath();
+      for (var i = 0; i <= 360; i += 10)
+         this.ctx.lineTo(i * this.sx, this.dev[0].dev_val(i) * this.sy);
+      this.ctx.stroke();
+   }
+
+
    draw()
    {
-      this.clear();
+      //this.clear();
       this.ctx.font = this.sx * G.fontscale + "pt sans-serif";
       this.axis();
 
       this.ctx.strokeStyle = '#404040';
-      this.ctx.lineWidth = 1;
-      this.ctx.beginPath();
-      for (var i = 0; i <= 360; i += 45)
-         this.ctx.lineTo(i * this.sx, this.dev.lin_val(i) * this.sy);
-      this.ctx.stroke();
+      this.draw_measurement();
 
       this.ctx.strokeStyle = '#f04040';
-      this.ctx.beginPath();
-      for (var i = 0; i <= 360; i += 10)
-         this.ctx.lineTo(i * this.sx, this.dev.dev_val(i) * this.sy);
-      this.ctx.stroke();
+      this.draw_curve();
 
-      var s = "y = " + this.dev.C[0].toFixed(2) + " + " + this.dev.C[1].toFixed(2) + " · sin(z) + " + this.dev.C[3].toFixed(2) + " · cos(z) + " + this.dev.C[3].toFixed(2) + " · sin(2z) + " + this.dev.C[4].toFixed(2) + " · cos(2z)";
+      var s = this.dev[0].str;
       this.ctx.fillText(s, 10, 19 * this.sy);
-      this.ctx.fillText("var = " + this.dev.var.toFixed(2), 10, 18 * this.sy);
    }
 
 
@@ -322,7 +350,7 @@ class DevDiag
          k = e.key.charCodeAt(0) - 0x61;
          diff *= -1;
       }
-      else if (["A", "B", "C", "E", "F"].includes(e.key))
+      else if (["A", "B", "C", "D", "E"].includes(e.key))
       {
          k = e.key.charCodeAt(0) - 0x41;
       }
@@ -357,8 +385,11 @@ function update()
          throw "syntax error in dev data";
       dev_data.push({a: +de[0], v: +de[1]});
    }
-
-   dd_.set_dev_data(dev_data);
+console.log(dev_data);
+   dd_.reset();
+   dd_.push(new Deviation(dev_data));
+   //for (var i = 0; i < dev_data.length; i++) dev_data[i].a += dev_data[i].v;
+   dd_.push(new Deviation(dev_data, "M"));
 }
 
 
